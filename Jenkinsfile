@@ -3,6 +3,7 @@ pipeline {
 
     tools {
         jdk "JAVA_HOME"
+        maven "M2_HOME"
     }
 
     environment {
@@ -16,6 +17,25 @@ pipeline {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/MRaid11/test-pipeline-2.git'
+            }
+        }
+
+        stage('Compile') {
+            steps {
+                sh "mvn clean compile"
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=myapp \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
             }
         }
 
@@ -46,7 +66,7 @@ pipeline {
 
     post {
         success {
-            echo "Build & Docker push completed successfully ✅"
+            echo "Pipeline + SonarQube completed ✅"
         }
         failure {
             echo "Pipeline failed ❌"
